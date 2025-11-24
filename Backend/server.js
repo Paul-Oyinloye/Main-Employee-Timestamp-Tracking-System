@@ -34,7 +34,12 @@ app.post("/employees", (req, res) => {
 });
 
 //timestamp with photo upload
-app.post("/timestamps", upload.single("photo"), (req, res) => {
-  const { employee_id, action } = req.body;
-  const photo_path = req.file ? req.file.path : null;
-  const time = new Date().toISOString();
+app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
+  const { employeeId } = req.body;
+
+  db.run(
+    "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'IN', datetime('now'), ?)",
+    [employeeId, req.file.path],
+    () => res.json({ message: "Clock-in recorded" })
+  );
+});
