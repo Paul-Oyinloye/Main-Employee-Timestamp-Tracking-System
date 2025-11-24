@@ -8,3 +8,17 @@ db.serialize(() => {
       role TEXT
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS timestamps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER,
+      action TEXT CHECK(action IN ('IN','OUT')),
+      time TEXT,
+      photo_path TEXT,
+      FOREIGN KEY(employee_id) REFERENCES employees(id)
+    )
+  `);
+
+  console.log("Database initialized successfully.");
+});
