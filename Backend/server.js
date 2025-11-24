@@ -33,7 +33,7 @@ app.post("/employees", (req, res) => {
   });
 });
 
-//timestamp with photo upload
+//timestamp in
 app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
   const { employeeId } = req.body;
 
@@ -41,5 +41,17 @@ app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
     "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'IN', datetime('now'), ?)",
     [employeeId, req.file.path],
     () => res.json({ message: "Clock-in recorded" })
+  );
+});
+
+// timestamp out 
+
+app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
+  const { employeeId } = req.body;
+
+  db.run(
+    "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'OUT', datetime('now'), ?)",
+    [employeeId, req.file.path],
+    () => res.json({ message: "Clock-out recorded" })
   );
 });
