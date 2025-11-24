@@ -24,3 +24,17 @@ app.get("/employees", (req, res) => {
     res.json(rows);
   });
 });
+
+//add employee
+app.post("/employees", (req, res) => {
+  const { name, role } = req.body;
+  db.run("INSERT INTO employees (name,role) VALUES (?,?)", [name, role], function () {
+    res.json({ id: this.lastID, name, role });
+  });
+});
+
+//timestamp with photo upload
+app.post("/timestamps", upload.single("photo"), (req, res) => {
+  const { employee_id, action } = req.body;
+  const photo_path = req.file ? req.file.path : null;
+  const time = new Date().toISOString();
