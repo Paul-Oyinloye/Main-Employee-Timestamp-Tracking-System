@@ -55,3 +55,11 @@ app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
     () => res.json({ message: "Clock-out recorded" })
   );
 });
+
+// History of timestamps for an employee
+app.get("/timestamps/:id", (req, res) => {
+  db.all("SELECT * FROM timestamps WHERE employee_id = ?", [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json(rows);
+  });
+});
