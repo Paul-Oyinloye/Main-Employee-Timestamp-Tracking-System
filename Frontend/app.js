@@ -13,4 +13,31 @@ function App() {
       .then(setEmployees);
   }, []);
 
+
+  //To Start camera
+  const startCamera = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    streamRef.current = stream;
+    videoRef.current.srcObject = stream;
+  };
+
+
+  // Captures selfie  upload
+  const sendTimestamp = (action) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
