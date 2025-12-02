@@ -28,6 +28,9 @@ function App() {
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
 
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoRef.current, 0, 3);
+
 
 
 
