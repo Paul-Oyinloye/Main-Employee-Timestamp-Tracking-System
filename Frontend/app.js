@@ -5,3 +5,12 @@ function App() {
   const [selected, setSelected] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+
+
+  useEffect(() => {
+    fetch("http://localhost:3000/employees")
+      .then(res => res.json())
+      .then(setEmployees);
+  }, []);
+
+}
