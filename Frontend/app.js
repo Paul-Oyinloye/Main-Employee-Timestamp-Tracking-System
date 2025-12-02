@@ -31,6 +31,13 @@ function App() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoRef.current, 0, 0);
 
+    canvas.toBlob((blob) => {
+      const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
+      const form = new FormData();
+
+      form.append("selfie", file);
+      form.append("employeeId", selected);
+
 
 
 
