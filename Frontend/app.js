@@ -29,7 +29,7 @@ function App() {
     canvas.height = videoRef.current.videoHeight;
 
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(videoRef.current, 0, 3);
+    ctx.drawImage(videoRef.current, 0, 0);
 
 
 
