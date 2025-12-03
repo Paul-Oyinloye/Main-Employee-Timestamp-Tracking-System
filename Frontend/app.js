@@ -38,6 +38,13 @@ function App() {
       form.append("selfie", file);
       form.append("employeeId", selected);
 
+      fetch(`http://localhost:3000/timestamp/${action}`, {
+        method: "POST",
+        body: form
+      }).then(() => alert(`Clock-${action} recorded!`));
+    }, "image/jpeg");
+  };
+
 
 
 
