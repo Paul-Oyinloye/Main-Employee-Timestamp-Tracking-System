@@ -1,3 +1,7 @@
+// https://www.sqlite.org/lang_createtable.html
+// Creates database tables using SQL statements
+// Based on official SQLite CREATE TABLE syntax:
+
 import db from "./db.js";
 
 db.serialize(() => {
