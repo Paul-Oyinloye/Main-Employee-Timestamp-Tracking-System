@@ -48,7 +48,17 @@ function App() {
     }, "image/jpeg");
   };
 
+ return (
+    <div>
 
+      <h2>Select Employee</h2>
+      <select onChange={(e) => setSelected(e.target.value)}>
+        <option>-- choose --</option>
+
+        {employees.map(e => (
+          <option key={e.id} value={e.id}>{e.name}</option>
+        ))}
+      </select>
 
 
 
