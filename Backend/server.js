@@ -1,3 +1,8 @@
+
+//Source: Express documentation (https://expressjs.com/)
+
+
+
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -13,6 +18,8 @@ const storage = multer.diskStorage({
   filename: (_, file, cb) => cb(null, Date.now() + ".jpg")
 });
 
+
+//https://github.com/expressjs/multer#diskstorage
 const upload = multer({ storage });
 
 
