@@ -59,10 +59,22 @@ function App() {
           <option key={e.id} value={e.id}>{e.name}</option>
         ))}
       </select>
+      
+      <button onClick={startCamera}>Start Camera</button>
 
+       {/* Video camera feed */}
+      <video ref={videoRef} width="300" autoPlay playsInline></video>
 
+      {selected && (
+        <>
+          <button onClick={() => sendTimestamp("in")}>Clock In</button>
+          <button onClick={() => sendTimestamp("out")}>Clock Out</button>
+        </>
+      )}
 
-  <button onClick={startCamera}>Start Camera</button>
+    </div>
+  );
+}
 
 
 
