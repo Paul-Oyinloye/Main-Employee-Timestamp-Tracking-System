@@ -1,3 +1,6 @@
+
+//Source for camera logic :https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+
 const { useState, useEffect, useRef } = React;
 
 function App() {
