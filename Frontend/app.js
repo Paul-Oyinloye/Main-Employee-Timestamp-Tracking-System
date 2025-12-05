@@ -52,6 +52,11 @@ function App() {
 
 
 
+  <button onClick={startCamera}>Start Camera</button>
+
+
+
+
 
 
 
