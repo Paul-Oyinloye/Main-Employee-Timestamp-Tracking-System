@@ -8,3 +8,7 @@ sqlite3.verbose();
 const db = new sqlite3.Database("./data.sqlite");
 
 export default db;
+
+db.on("error", (err) => {
+  console.error("❌ SQLite ERROR:", err);
+});
