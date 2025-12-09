@@ -70,3 +70,9 @@ app.get("/timestamps/:id", (req, res) => {
     res.json(rows);
   });
 });
+
+//to start server
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`🔥 Server running on http://localhost:${PORT}`);
+});
