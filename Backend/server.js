@@ -15,7 +15,7 @@ import db from "./db.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("../frontend"));
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 const storage = multer.diskStorage({
   destination: "uploads/",
