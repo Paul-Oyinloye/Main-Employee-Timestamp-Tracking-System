@@ -2,6 +2,14 @@
 
 console.log("Server starting...");
 
+process.on("uncaughtException", err => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", err => {
+  console.error("UNHANDLED REJECTION:", err);
+});
+
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -72,7 +80,7 @@ app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
 // START SERVER
 const PORT = 3001;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "127.0.0.1", () => {
   console.log(">>> app.listen callback FIRED <<<");
   console.log(`Server running at http://127.0.0.1:${PORT}`);
 });
