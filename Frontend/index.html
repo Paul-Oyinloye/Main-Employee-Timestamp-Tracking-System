@@ -1,25 +1,26 @@
 <!doctype html>
 <html>
 <head>
-     <meta charset="utf-8"/>
+  <meta charset="utf-8"/>
   <title>Craneburg Timestamp System</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-</head>
-   <h1>Craneburg Timestamp System</h1>
-  <div id="root"></div>
 
-
-  <!-- Source from: https://react.dev/learn/add-react-to-a-website -->
-
-
+  <!-- React CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-  <!-- Source: https://babeljs.io/docs/babel-standalone -->
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <!-- Babel (required for JSX in the browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
 
+<body>
+  <h1>Craneburg Timestamp System</h1>
+
+  <div id="root"></div>
+
+  <!-- Load your React app using Babel -->
   <script type="text/babel" src="app.js"></script>
-
+</body>
+</html>
 
 
 
