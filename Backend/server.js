@@ -76,4 +76,8 @@ app.get("/timestamps/:id", (req, res) => {
 });
 
 //to start server
-app.listen(3001, () => console.log("Server running on http://localhost:3001"));
+const PORT = 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
