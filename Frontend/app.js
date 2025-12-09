@@ -11,7 +11,7 @@ function App() {
 
 
   useEffect(() => {
-    fetch("http://localhost:3000/employees")
+    fetch("http://localhost:3001/employees")
       .then(res => res.json())
       .then(setEmployees);
   }, []);
@@ -41,7 +41,7 @@ function App() {
       form.append("selfie", file);
       form.append("employeeId", selected);
 
-      fetch(`http://localhost:3000/timestamp/${action}`, {
+      fetch(`http://localhost:3001/timestamp/${action}`, {
         method: "POST",
         body: form
       }).then(() => alert(`Clock-${action} recorded!`));
