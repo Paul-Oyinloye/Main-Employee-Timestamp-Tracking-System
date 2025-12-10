@@ -68,14 +68,20 @@ app.get("/employees", (req, res) => {
 app.post("/employees", (req, res) => {
   console.log("POST /employees body:", req.body);
   const { name, role } = req.body;
+
+  if (!name || !role) {
+    return res.status(400).json({ error: "Name and role required" });
+  }
+
   db.run(
-    "INSERT INTO employees (name,role) VALUES (?,?)",
+    "INSERT INTO employees (name, role) VALUES (?,?)",
     [name, role],
     function (err) {
       if (err) {
         console.error("DB error in POST /employees:", err);
         return res.status(500).json({ error: "DB error" });
       }
+
       res.json({ id: this.lastID, name, role });
     }
   );

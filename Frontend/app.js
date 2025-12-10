@@ -6,6 +6,8 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [pay, setPay] = useState(null);
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("");
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -66,6 +68,31 @@ function App() {
         calculatePay(data);
       });
   };
+
+  const addEmployee = async () => {
+  if (!newName || !newRole) {
+    return alert("Enter both name and role.");
+  }
+
+  const res = await fetch("http://127.0.0.1:3001/employees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: newName, role: newRole })
+  });
+
+  const data = await res.json();
+
+  alert("Employee added!");
+
+  // Refresh employee list
+  fetch("http://127.0.0.1:3001/employees")
+    .then(res => res.json())
+    .then(setEmployees);
+
+  // Reset fields
+  setNewName("");
+  setNewRole("");
+};
 
   // Calculate Irish minimum wage pay (€13/hr)
   const calculatePay = (records) => {
