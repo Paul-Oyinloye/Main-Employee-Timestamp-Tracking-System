@@ -5,48 +5,38 @@ const { useState, useEffect, useRef } = React;
 function App() {
   const [employees, setEmployees] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [history, setHistory] = useState([]);   // NEW: history state
-  const [cameraOn, setCameraOn] = useState(false); // NEW: track camera status
+  const [history, setHistory] = useState([]);
+  const [payment, setPayment] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Load all employees on first render
+  const HOURLY_RATE = 13; // Assuming Irish minimum wage
+
+  // Load employees on mount
   useEffect(() => {
     fetch("http://127.0.0.1:3001/employees")
       .then(res => res.json())
       .then(setEmployees);
   }, []);
 
-  // START CAMERA
+  // Start camera
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      setCameraOn(true);
-    } catch (err) {
-      alert("Camera access denied");
-    }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    streamRef.current = stream;
+    videoRef.current.srcObject = stream;
   };
 
-
-  // STOP CAMERA (NEW)
+  // Stop camera
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
-      videoRef.current.srcObject = null;
-      setCameraOn(false);
     }
   };
 
-  // CAPTURE SELFIE + SEND TIMESTAMP
+  // Capture selfie and upload
   const sendTimestamp = (action) => {
-    if (!cameraOn) {
-      return alert("Camera is not started!");
-    }
-
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -57,28 +47,53 @@ function App() {
     canvas.toBlob((blob) => {
       const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
       const form = new FormData();
-
       form.append("selfie", file);
       form.append("employeeId", selected);
 
       fetch(`http://127.0.0.1:3001/timestamp/${action}`, {
         method: "POST",
         body: form
-      }).then(() => {
-        alert(`Clock-${action} recorded!`);
-        loadHistory(); // refresh history after action
-      });
-
+      }).then(() => alert(`Clock-${action} recorded!`));
     }, "image/jpeg");
   };
 
-  // LOAD TIMESTAMP HISTORY (NEW)
+  // Fetch employee history
   const loadHistory = () => {
-    if (!selected) return alert("Select an employee first!");
-
     fetch(`http://127.0.0.1:3001/timestamps/${selected}`)
       .then(res => res.json())
-      .then(setHistory);
+      .then(data => {
+        setHistory(data);
+        calculatePayment(data);
+      });
+  };
+
+  // Payment calculation from timestamps
+  const calculatePayment = (records) => {
+    /*
+      logic:
+      - Calculate hours = (OUT - IN)
+      - Total Payment = hours * 13
+    */
+
+    let totalHours = 0;
+
+    for (let i = 0; i < records.length; i++) {
+      if (records[i].action === "IN" && records[i + 1] && records[i + 1].action === "OUT") {
+        const inTime = new Date(records[i].time);
+        const outTime = new Date(records[i + 1].time);
+
+        const diffHours = (outTime - inTime) / (1000 * 60 * 60);
+        totalHours += diffHours;
+      }
+    }
+
+    const totalPay = totalHours * HOURLY_RATE;
+
+    setPayment({
+      hours: totalHours.toFixed(2),
+      pay: totalPay.toFixed(2),
+      rate: HOURLY_RATE
+    });
   };
 
   return (
@@ -86,22 +101,18 @@ function App() {
       <h2>Select Employee</h2>
 
       <select onChange={(e) => setSelected(e.target.value)}>
-        <option value="">-- choose --</option>
+        <option>-- choose --</option>
         {employees.map(e => (
-          <option key={e.id} value={e.id}>
-            {e.name}
-          </option>
+          <option key={e.id} value={e.id}>{e.name}</option>
         ))}
       </select>
 
-      {/* CAMERA CONTROLS */}
       <button onClick={startCamera}>Start Camera</button>
-      <button onClick={stopCamera} disabled={!cameraOn}>Stop Camera</button>
+      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>Stop Camera</button>
 
-      {/* VIDEO FEED */}
       <video ref={videoRef} width="300" autoPlay playsInline></video>
 
-      {/* CLOCK IN / OUT BUTTONS */}
+      {/* Clock In / Out */}
       {selected && (
         <>
           <button onClick={() => sendTimestamp("in")}>Clock In</button>
@@ -109,26 +120,28 @@ function App() {
         </>
       )}
 
-      {/* HISTORY BUTTON */}
-      <button onClick={loadHistory} disabled={!selected}>
-        Show History
-      </button>
+      {/* View History */}
+      <button onClick={loadHistory}>View Shift History</button>
 
-      {/* HISTORY DISPLAY */}
-      <h3>Timestamp History</h3>
+      {/* Show History */}
+      <h3>Shift History</h3>
       <ul>
-        {history.map((h) => (
+        {history.map(h => (
           <li key={h.id}>
-            [{h.action}] {h.time}  
-            <br />
-            <img 
-              src={`http://127.0.0.1:3001/${h.photo_path}`} 
-              width="100"
-            />
+            {h.action} — {h.time}
           </li>
         ))}
       </ul>
 
+      {/* Payment Calculator */}
+      {payment && (
+        <div style={{ marginTop: "20px", padding: "10px", border: "1px solid black" }}>
+          <h3>Payment Summary</h3>
+          <p>Total Hours Worked: {payment.hours} hrs</p>
+          <p>Rate: €{payment.rate}/hr</p>
+          <p><b>Total Pay: €{payment.pay}</b></p>
+        </div>
+      )}
     </div>
   );
 }
