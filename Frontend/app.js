@@ -48,6 +48,17 @@ function App() {
     }, "image/jpeg");
   };
 
+  // Load timestamp history
+const [history, setHistory] = useState([]);
+
+const loadHistory = () => {
+  if (!selected) return;
+
+  fetch(`http://127.0.0.1:3001/timestamps/${selected}`)
+    .then(res => res.json())
+    .then(setHistory);
+};
+
  return (
     <div>
 
@@ -71,6 +82,10 @@ function App() {
           <button onClick={() => sendTimestamp("out")}>Clock Out</button>
         </>
       )}
+
+      
+
+      
 
     </div>
   );
