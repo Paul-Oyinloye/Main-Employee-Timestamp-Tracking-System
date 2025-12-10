@@ -80,6 +80,7 @@ const loadHistory = () => {
         <>
           <button onClick={() => sendTimestamp("in")}>Clock In</button>
           <button onClick={() => sendTimestamp("out")}>Clock Out</button>
+          <button onClick={loadHistory}>Show History</button>
         </>
       )}
 
