@@ -85,6 +85,7 @@ app.post("/employees", (req, res) => {
 app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
   console.log("POST /timestamp/in, body:", req.body);
   const { employeeId } = req.body;
+
   db.run(
     "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'IN', datetime('now'), ?)",
     [employeeId, req.file?.path || null],
@@ -102,6 +103,7 @@ app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
 app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
   console.log("POST /timestamp/out, body:", req.body);
   const { employeeId } = req.body;
+
   db.run(
     "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'OUT', datetime('now'), ?)",
     [employeeId, req.file?.path || null],
@@ -111,6 +113,26 @@ app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
         return res.status(500).json({ error: "DB error" });
       }
       res.json({ message: "Clock-out recorded" });
+    }
+  );
+});
+
+
+    //NEW ROUTE — SHIFT HISTORY
+   
+app.get("/timestamps/:id", (req, res) => {
+  const id = req.params.id;
+  console.log("GET /timestamps/", id);
+
+  db.all(
+    "SELECT * FROM timestamps WHERE employee_id = ? ORDER BY time DESC",
+    [id],
+    (err, rows) => {
+      if (err) {
+        console.error("DB error in GET /timestamps/:id:", err);
+        return res.status(500).json({ error: "DB error" });
+      }
+      res.json(rows);
     }
   );
 });

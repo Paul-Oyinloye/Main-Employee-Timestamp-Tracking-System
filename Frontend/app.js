@@ -1,19 +1,16 @@
-// Source for camera logic: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-
+//Source for camera logic : https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
 const { useState, useEffect, useRef } = React;
 
 function App() {
   const [employees, setEmployees] = useState([]);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
-  const [payment, setPayment] = useState(null);
+  const [pay, setPay] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  const HOURLY_RATE = 13; // Assuming Irish minimum wage
-
-  // Load employees on mount
+  // Load employees
   useEffect(() => {
     fetch("http://127.0.0.1:3001/employees")
       .then(res => res.json())
@@ -30,12 +27,13 @@ function App() {
   // Stop camera
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
+      videoRef.current.srcObject = null;
     }
   };
 
-  // Capture selfie and upload
+  // Send Clock-in/out with selfie
   const sendTimestamp = (action) => {
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
@@ -47,60 +45,53 @@ function App() {
     canvas.toBlob((blob) => {
       const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
       const form = new FormData();
+
       form.append("selfie", file);
       form.append("employeeId", selected);
 
       fetch(`http://127.0.0.1:3001/timestamp/${action}`, {
         method: "POST",
         body: form
-      }).then(() => alert(`Clock-${action} recorded!`));
+      })
+      .then(() => alert(`Clock-${action} recorded!`));
     }, "image/jpeg");
   };
 
-  // Fetch employee history
-  const loadHistory = () => {
+  // Fetch shift history
+  const fetchHistory = () => {
     fetch(`http://127.0.0.1:3001/timestamps/${selected}`)
       .then(res => res.json())
       .then(data => {
         setHistory(data);
-        calculatePayment(data);
+        calculatePay(data);
       });
   };
 
-  // Payment calculation from timestamps
-  const calculatePayment = (records) => {
-    /*
-      logic:
-      - Calculate hours = (OUT - IN)
-      - Total Payment = hours * 13
-    */
+  // Calculate Irish minimum wage pay (€13/hr)
+  const calculatePay = (records) => {
+    let totalMinutes = 0;
 
-    let totalHours = 0;
+    for (let i = 0; i < records.length; i += 2) {
+      const entry = records[i];
+      const exit = records[i + 1];
 
-    for (let i = 0; i < records.length; i++) {
-      if (records[i].action === "IN" && records[i + 1] && records[i + 1].action === "OUT") {
-        const inTime = new Date(records[i].time);
-        const outTime = new Date(records[i + 1].time);
-
-        const diffHours = (outTime - inTime) / (1000 * 60 * 60);
-        totalHours += diffHours;
+      if (entry && exit && entry.action === "IN" && exit.action === "OUT") {
+        const start = new Date(entry.time);
+        const end = new Date(exit.time);
+        const diff = (end - start) / 60000; // minutes
+        totalMinutes += diff;
       }
     }
 
-    const totalPay = totalHours * HOURLY_RATE;
-
-    setPayment({
-      hours: totalHours.toFixed(2),
-      pay: totalPay.toFixed(2),
-      rate: HOURLY_RATE
-    });
+    const hours = totalMinutes / 60;
+    const wage = 13;
+    setPay((hours * wage).toFixed(2));
   };
 
   return (
     <div>
       <h2>Select Employee</h2>
-
-      <select onChange={(e) => setSelected(e.target.value)}>
+      <select onChange={e => setSelected(e.target.value)}>
         <option>-- choose --</option>
         {employees.map(e => (
           <option key={e.id} value={e.id}>{e.name}</option>
@@ -108,39 +99,31 @@ function App() {
       </select>
 
       <button onClick={startCamera}>Start Camera</button>
-      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>Stop Camera</button>
+      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>
+        Stop Camera
+      </button>
 
-      <video ref={videoRef} width="300" autoPlay playsInline></video>
+      <div>
+        <video ref={videoRef} width="400" autoPlay playsInline></video>
+      </div>
 
-      {/* Clock In / Out */}
       {selected && (
         <>
           <button onClick={() => sendTimestamp("in")}>Clock In</button>
           <button onClick={() => sendTimestamp("out")}>Clock Out</button>
+          <button onClick={fetchHistory}>View Shift History</button>
         </>
       )}
 
-      {/* View History */}
-      <button onClick={loadHistory}>View Shift History</button>
-
-      {/* Show History */}
       <h3>Shift History</h3>
       <ul>
-        {history.map(h => (
-          <li key={h.id}>
-            {h.action} — {h.time}
-          </li>
-        ))}
+        {history.map((h, i) =>
+          <li key={i}>{h.action} — {h.time}</li>
+        )}
       </ul>
 
-      {/* Payment Calculator */}
-      {payment && (
-        <div style={{ marginTop: "20px", padding: "10px", border: "1px solid black" }}>
-          <h3>Payment Summary</h3>
-          <p>Total Hours Worked: {payment.hours} hrs</p>
-          <p>Rate: €{payment.rate}/hr</p>
-          <p><b>Total Pay: €{payment.pay}</b></p>
-        </div>
+      {pay !== null && (
+        <h3>Total Estimated Pay: €{pay}</h3>
       )}
     </div>
   );
