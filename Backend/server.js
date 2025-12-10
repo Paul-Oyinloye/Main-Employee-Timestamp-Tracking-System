@@ -1,82 +1,124 @@
-// Source: Express documentation (https://expressjs.com/)
+// server.js
+// Clean, instrumented server for debugging
 
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import db from "./db.js";
+import db from "./db.js";    // assumes db.js is correct
 
+// ----- Resolve __dirname for ES modules -----
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log("Server starting...");
+
+// ----- Create app & basic middleware -----
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Correct static folder path
+// ----- Serve frontend -----
 const frontPath = path.join(__dirname, "..", "frontend");
 console.log("Serving static files from:", frontPath);
 app.use(express.static(frontPath));
 
-// Ensure uploads folder exists
+// ----- Ensure uploads folder exists -----
 const uploadDir = path.join(__dirname, "uploads");
+
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+  console.log("uploads/ did not exist, creating:", uploadDir);
+  fs.mkdirSync(uploadDir);
+} else {
+  console.log("uploads/ already exists:", uploadDir);
 }
 
+// ----- Multer storage -----
 const storage = multer.diskStorage({
-    destination: uploadDir,
-    filename: (_, file, cb) => cb(null, Date.now() + ".jpg")
+  destination: uploadDir,
+  filename: (_, file, cb) => cb(null, Date.now() + ".jpg")
 });
 
 const upload = multer({ storage });
 
-// ROUTES
+// ----- ROUTES -----
+
+// Simple health check
+app.get("/ping", (req, res) => {
+  console.log("GET /ping");
+  res.json({ ok: true });
+});
+
+// Employees list
 app.get("/employees", (req, res) => {
-    db.all("SELECT * FROM employees", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err });
-        res.json(rows);
-    });
+  console.log("GET /employees hit");
+  db.all("SELECT * FROM employees", [], (err, rows) => {
+    if (err) {
+      console.error("DB error in /employees:", err);
+      return res.status(500).json({ error: "DB error" });
+    }
+    res.json(rows);
+  });
 });
 
+// Add employee
 app.post("/employees", (req, res) => {
-    const { name, role } = req.body;
-    db.run(
-        "INSERT INTO employees (name, role) VALUES (?, ?)",
-        [name, role],
-        function () {
-            res.json({ id: this.lastID, name, role });
-        }
-    );
+  console.log("POST /employees body:", req.body);
+  const { name, role } = req.body;
+  db.run(
+    "INSERT INTO employees (name,role) VALUES (?,?)",
+    [name, role],
+    function (err) {
+      if (err) {
+        console.error("DB error in POST /employees:", err);
+        return res.status(500).json({ error: "DB error" });
+      }
+      res.json({ id: this.lastID, name, role });
+    }
+  );
 });
 
+// Clock in
 app.post("/timestamp/in", upload.single("selfie"), (req, res) => {
-    const { employeeId } = req.body;
-
-    db.run(
-        "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'IN', datetime('now'), ?)",
-        [employeeId, req.file.path],
-        () => res.json({ message: "Clock-in recorded" })
-    );
+  console.log("POST /timestamp/in, body:", req.body);
+  const { employeeId } = req.body;
+  db.run(
+    "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'IN', datetime('now'), ?)",
+    [employeeId, req.file?.path || null],
+    function (err) {
+      if (err) {
+        console.error("DB error in /timestamp/in:", err);
+        return res.status(500).json({ error: "DB error" });
+      }
+      res.json({ message: "Clock-in recorded" });
+    }
+  );
 });
 
+// Clock out
 app.post("/timestamp/out", upload.single("selfie"), (req, res) => {
-    const { employeeId } = req.body;
-
-    db.run(
-        "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'OUT', datetime('now'), ?)",
-        [employeeId, req.file.path],
-        () => res.json({ message: "Clock-out recorded" })
-    );
+  console.log("POST /timestamp/out, body:", req.body);
+  const { employeeId } = req.body;
+  db.run(
+    "INSERT INTO timestamps (employee_id, action, time, photo_path) VALUES (?, 'OUT', datetime('now'), ?)",
+    [employeeId, req.file?.path || null],
+    function (err) {
+      if (err) {
+        console.error("DB error in /timestamp/out:", err);
+        return res.status(500).json({ error: "DB error" });
+      }
+      res.json({ message: "Clock-out recorded" });
+    }
+  );
 });
 
-// START SERVER
+// ----- START SERVER -----
 const PORT = 3001;
 
-console.log("Server starting...");
-app.listen(PORT, "127.0.0.1", () => {
-    console.log(">>> app.listen callback FIRED <<<");
-    console.log(`Server running at http://127.0.0.1:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(">>> app.listen callback FIRED <<<");
+  console.log(`Server running at http://127.0.0.1:${PORT}`);
 });
