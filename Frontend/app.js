@@ -1,42 +1,56 @@
 //Source for camera logic : https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+
 const { useState, useEffect, useRef } = React;
 
 function App() {
   const [employees, setEmployees] = useState([]);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
-  const [pay, setPay] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
+
+  const [hourlyRate, setHourlyRate] = useState(13); // Min wage Ireland 2025
+  const [calculatedPay, setCalculatedPay] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
+  
   // Load employees
+ 
   useEffect(() => {
     fetch("http://127.0.0.1:3001/employees")
       .then(res => res.json())
       .then(setEmployees);
   }, []);
 
-  // Start camera
+ 
+  // Camera controls
+
   const startCamera = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     streamRef.current = stream;
     videoRef.current.srcObject = stream;
   };
 
-  // Stop camera
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
       videoRef.current.srcObject = null;
     }
   };
 
-  // Send Clock-in/out with selfie
+ 
+  // Clock In / Out
+ 
   const sendTimestamp = (action) => {
+    if (!selected) return alert("Select employee first!");
+    if (!videoRef.current.srcObject) return alert("Start camera first!");
+
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -55,103 +69,157 @@ function App() {
         method: "POST",
         body: form
       })
-      .then(() => alert(`Clock-${action} recorded!`));
+        .then(() => alert(`Clock-${action} recorded!`));
     }, "image/jpeg");
   };
 
-  // Fetch shift history
-  const fetchHistory = () => {
+ 
+  // LOAD SHIFT HISTORY
+ 
+  const loadHistory = () => {
     fetch(`http://127.0.0.1:3001/timestamps/${selected}`)
       .then(res => res.json())
       .then(data => {
         setHistory(data);
-        calculatePay(data);
+        setShowHistory(true);
       });
   };
 
-  const addEmployee = async () => {
-  if (!newName || !newRole) {
-    return alert("Enter both name and role.");
-  }
 
-  const res = await fetch("http://127.0.0.1:3001/employees", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: newName, role: newRole })
-  });
+  // PAY CALCULATOR
 
-  const data = await res.json();
+  const calculatePay = () => {
+    if (history.length < 2) return alert("Not enough timestamps recorded.");
 
-  alert("Employee added!");
+    // pair IN + OUT timestamps
+    let totalMs = 0;
 
-  // Refresh employee list
-  fetch("http://127.0.0.1:3001/employees")
-    .then(res => res.json())
-    .then(setEmployees);
+    for (let i = 0; i < history.length - 1; i += 2) {
+      const IN = new Date(history[i].time);
+      const OUT = new Date(history[i + 1].time);
 
-  // Reset fields
-  setNewName("");
-  setNewRole("");
-};
-
-  // Calculate Irish minimum wage pay (€13/hr)
-  const calculatePay = (records) => {
-    let totalMinutes = 0;
-
-    for (let i = 0; i < records.length; i += 2) {
-      const entry = records[i];
-      const exit = records[i + 1];
-
-      if (entry && exit && entry.action === "IN" && exit.action === "OUT") {
-        const start = new Date(entry.time);
-        const end = new Date(exit.time);
-        const diff = (end - start) / 60000; // minutes
-        totalMinutes += diff;
-      }
+      totalMs += OUT - IN;
     }
 
-    const hours = totalMinutes / 60;
-    const wage = 13;
-    setPay((hours * wage).toFixed(2));
+    const hours = totalMs / (1000 * 60 * 60);
+    const pay = hours * hourlyRate;
+
+    setCalculatedPay({
+      hours: hours.toFixed(2),
+      pay: pay.toFixed(2)
+    });
   };
+
+
+  // ADD EMPLOYEE
+ 
+  const addEmployee = () => {
+    if (!newName || !newRole) return alert("Enter name & role");
+
+    fetch("http://127.0.0.1:3001/employees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName, role: newRole })
+    })
+      .then(res => res.json())
+      .then(emp => {
+        setEmployees([...employees, emp]);
+        alert("Employee added!");
+        setShowAdd(false);
+      });
+  };
+
+ 
+  // UI
 
   return (
     <div>
-      <h2>Select Employee</h2>
-      <select onChange={e => setSelected(e.target.value)}>
+      <h1>CraneBurg Timestamp System</h1>
+
+      {/* ADD EMPLOYEE SECTION ------------------------------------------------ */}
+      <button onClick={() => setShowAdd(!showAdd)}>Add Employee</button>
+
+      {showAdd && (
+        <div style={{ marginTop: "10px", padding: "10px", border: "1px solid black", width: "250px" }}>
+          <h3>Add New Employee</h3>
+
+          <input placeholder="Name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          /><br /><br />
+
+          <input placeholder="Role"
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value)}
+          /><br /><br />
+
+          <button onClick={addEmployee}>Save</button>
+        </div>
+      )}
+
+      <br /><br />
+
+      {/* SELECT EMPLOYEE ------------------------------------------------ */}
+      <h3>Select Employee</h3>
+      <select onChange={(e) => setSelected(e.target.value)}>
         <option>-- choose --</option>
+
         {employees.map(e => (
           <option key={e.id} value={e.id}>{e.name}</option>
         ))}
       </select>
 
+      {/* CAMERA ------------------------------------------------ */}
       <button onClick={startCamera}>Start Camera</button>
-      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>
-        Stop Camera
-      </button>
+      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>Stop Camera</button>
 
-      <div>
-        <video ref={videoRef} width="400" autoPlay playsInline></video>
-      </div>
+      <br /><br />
+      <video ref={videoRef} width="300" autoPlay playsInline></video>
 
+      <br /><br />
+
+      {/* CLOCK BUTTONS ------------------------------------------------ */}
       {selected && (
         <>
           <button onClick={() => sendTimestamp("in")}>Clock In</button>
           <button onClick={() => sendTimestamp("out")}>Clock Out</button>
-          <button onClick={fetchHistory}>View Shift History</button>
+          <button onClick={loadHistory}>View Shift History</button>
         </>
       )}
 
-      <h3>Shift History</h3>
-      <ul>
-        {history.map((h, i) =>
-          <li key={i}>{h.action} — {h.time}</li>
-        )}
-      </ul>
+      {/* SHIFT HISTORY ------------------------------------------------ */}
+      {showHistory && (
+        <div style={{ marginTop: "20px" }}>
+          <h2>Shift History</h2>
 
-      {pay !== null && (
-        <h3>Total Estimated Pay: €{pay}</h3>
+          {history.map((h, i) => (
+            <div key={i}>
+              {h.action} — {h.time}
+            </div>
+          ))}
+
+          <br />
+
+          {/* PAY CALCULATOR -------------------------------------- */}
+          <h3>Pay Calculator</h3>
+          Hourly Rate (€):  
+          <input
+            type="number"
+            value={hourlyRate}
+            onChange={(e) => setHourlyRate(parseFloat(e.target.value))}
+          />
+
+          <button onClick={calculatePay}>Calculate Pay</button>
+
+          {calculatedPay && (
+            <div>
+              <p>Total Hours: {calculatedPay.hours}</p>
+              <p>Total Pay: €{calculatedPay.pay}</p>
+            </div>
+          )}
+        </div>
       )}
+
     </div>
   );
 }
