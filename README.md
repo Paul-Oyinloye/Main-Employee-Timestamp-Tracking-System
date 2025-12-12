@@ -13,3 +13,6 @@ React with CDN + Babel: React Official Docs, https://react.dev/
 Camera API: MDN getUserMedia, https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
 
 Canvas image capture: MDN Canvas Capture, https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API
+
+
+testing update for render depolyment
