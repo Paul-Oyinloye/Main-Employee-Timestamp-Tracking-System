@@ -2,6 +2,8 @@
 
 const { useState, useEffect, useRef } = React;
 
+const API_BASE = "https://employee-timestamp-backend.onrender.com";
+
 function App() {
   const [employees, setEmployees] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -18,6 +20,7 @@ function App() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
+  
   
   // Load employees
  
