@@ -1,5 +1,5 @@
 // server.js
-// Clean, instrumented server for debugging
+// https://chatgpt.com/share/693be979-e2c8-800e-bcb0-0cac7e968f36
 
 import path from "path";
 import { fileURLToPath } from "url";
