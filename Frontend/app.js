@@ -25,9 +25,10 @@ function App() {
   // Load employees
  
   useEffect(() => {
-    fetch("http://127.0.0.1:3001/employees")
+    fetch(`${API_BASE}/employees`)
       .then(res => res.json())
-      .then(setEmployees);
+      .then(setEmployees)
+      .catch(err => console.error("Employees fetch error:", err));
   }, []);
 
  
@@ -68,11 +69,12 @@ function App() {
       form.append("selfie", file);
       form.append("employeeId", selected);
 
-      fetch(`http://127.0.0.1:3001/timestamp/${action}`, {
+      fetch(`${API_BASE}/timestamp/${action}`, {
         method: "POST",
         body: form
       })
-        .then(() => alert(`Clock-${action} recorded!`));
+        .then(() => alert(`Clock-${action} recorded`))
+        .catch(err => alert("Timestamp error"));
     }, "image/jpeg");
   };
 
@@ -80,12 +82,13 @@ function App() {
   // LOAD SHIFT HISTORY
  
   const loadHistory = () => {
-    fetch(`http://127.0.0.1:3001/timestamps/${selected}`)
+    fetch(`${API_BASE}/timestamps/${selected}`)
       .then(res => res.json())
       .then(data => {
         setHistory(data);
-        setShowHistory(true);
-      });
+        calculatePay(data);
+      })
+      .catch(err => console.error("History error:", err));
   };
 
 
@@ -119,7 +122,7 @@ function App() {
   const addEmployee = () => {
     if (!newName || !newRole) return alert("Enter name & role");
 
-    fetch("http://127.0.0.1:3001/employees", {
+    fetch(`${API_BASE}/employees`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName, role: newRole })
