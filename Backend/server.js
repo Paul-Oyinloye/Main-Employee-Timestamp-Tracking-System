@@ -148,8 +148,7 @@ const PORT = process.env.PORT || 3001;
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(">>> app.listen callback FIRED <<<");
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running at http://127.0.0.1:${PORT}`);
   });
 }
 
