@@ -1,4 +1,4 @@
-//Source for camera logic : https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+// Source: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
 
 const { useState, useEffect, useRef } = React;
 
@@ -9,31 +9,26 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
 
+  const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
 
-  const [hourlyRate, setHourlyRate] = useState(13); // Min wage Ireland 2025
+  const [hourlyRate, setHourlyRate] = useState(13);
   const [calculatedPay, setCalculatedPay] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  
-  
-  // Load employees
- 
+  /* ---------------- LOAD EMPLOYEES ---------------- */
   useEffect(() => {
     fetch(`${API_BASE}/employees`)
       .then(res => res.json())
       .then(setEmployees)
-      .catch(err => console.error("Employees fetch error:", err));
+      .catch(err => console.error(err));
   }, []);
 
- 
-  // Camera controls
-
+  /* ---------------- CAMERA ---------------- */
   const startCamera = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     streamRef.current = stream;
@@ -42,85 +37,73 @@ function App() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
       videoRef.current.srcObject = null;
     }
   };
 
- 
-  // Clock In / Out
- 
+  /* ---------------- CLOCK IN / OUT ---------------- */
   const sendTimestamp = (action) => {
-    if (!selected) return alert("Select employee first!");
-    if (!videoRef.current.srcObject) return alert("Start camera first!");
+    if (!selected) return alert("Select employee first");
+    if (!videoRef.current.srcObject) return alert("Start camera first");
 
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
+    canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(videoRef.current, 0, 0);
-
-    canvas.toBlob((blob) => {
-      const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
+    canvas.toBlob(blob => {
       const form = new FormData();
-
-      form.append("selfie", file);
+      form.append("selfie", blob, "selfie.jpg");
       form.append("employeeId", selected);
 
       fetch(`${API_BASE}/timestamp/${action}`, {
         method: "POST",
         body: form
-      })
-        .then(() => alert(`Clock-${action} recorded`))
-        .catch(err => alert("Timestamp error"));
-    }, "image/jpeg");
-  };
-
- 
-  // LOAD SHIFT HISTORY
- 
-  const loadHistory = () => {
-    fetch(`${API_BASE}/timestamps/${selected}`)
-      .then(res => res.json())
-      .then(data => {
-        setHistory(data);
-        calculatePay(data);
-      })
-      .catch(err => console.error("History error:", err));
-  };
-
-
-  // PAY CALCULATOR
-
-  const calculatePay = () => {
-    if (history.length < 2) return alert("Not enough timestamps recorded.");
-
-    // pair IN + OUT timestamps
-    let totalMs = 0;
-
-    for (let i = 0; i < history.length - 1; i += 2) {
-      const IN = new Date(history[i].time);
-      const OUT = new Date(history[i + 1].time);
-
-      totalMs += OUT - IN;
-    }
-
-    const hours = totalMs / (1000 * 60 * 60);
-    const pay = hours * hourlyRate;
-
-    setCalculatedPay({
-      hours: hours.toFixed(2),
-      pay: pay.toFixed(2)
+      }).then(() => alert(`Clock-${action} recorded`));
     });
   };
 
+  /* ---------------- LOAD SHIFT HISTORY ---------------- */
+  const loadHistory = () => {
+    if (!selected) return;
 
-  // ADD EMPLOYEE
- 
+    fetch(`${API_BASE}/timestamps/${selected}`)
+      .then(res => res.json())
+      .then(data => {
+        const sorted = data.sort((a, b) =>
+          new Date(a.time) - new Date(b.time)
+        );
+        setHistory(sorted);
+        setShowHistory(true);
+        calculatePay(sorted);
+      })
+      .catch(err => console.error(err));
+  };
+
+  /* ---------------- PAY CALCULATOR ---------------- */
+  const calculatePay = (data) => {
+    if (!data || data.length < 2) return;
+
+    let totalMs = 0;
+
+    for (let i = 0; i < data.length - 1; i += 2) {
+      if (data[i].action === "IN" && data[i + 1]?.action === "OUT") {
+        totalMs += new Date(data[i + 1].time) - new Date(data[i].time);
+      }
+    }
+
+    const hours = totalMs / (1000 * 60 * 60);
+    setCalculatedPay({
+      hours: hours.toFixed(2),
+      pay: (hours * hourlyRate).toFixed(2)
+    });
+  };
+
+  /* ---------------- ADD EMPLOYEE ---------------- */
   const addEmployee = () => {
-    if (!newName || !newRole) return alert("Enter name & role");
+    if (!newName || !newRole) return;
 
     fetch(`${API_BASE}/employees`, {
       method: "POST",
@@ -130,61 +113,49 @@ function App() {
       .then(res => res.json())
       .then(emp => {
         setEmployees([...employees, emp]);
-        alert("Employee added!");
         setShowAdd(false);
+        setNewName("");
+        setNewRole("");
       });
   };
 
- 
-  // UI
-
+  /* ---------------- UI ---------------- */
   return (
     <div>
       <h1>CraneBurg Timestamp System</h1>
 
-      {/* ADD EMPLOYEE SECTION ------------------------------------------------ */}
       <button onClick={() => setShowAdd(!showAdd)}>Add Employee</button>
 
       {showAdd && (
-        <div style={{ marginTop: "10px", padding: "10px", border: "1px solid black", width: "250px" }}>
-          <h3>Add New Employee</h3>
-
-          <input placeholder="Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          /><br /><br />
-
-          <input placeholder="Role"
-            value={newRole}
-            onChange={(e) => setNewRole(e.target.value)}
-          /><br /><br />
-
+        <div>
+          <input placeholder="Name" value={newName}
+            onChange={e => setNewName(e.target.value)} />
+          <input placeholder="Role" value={newRole}
+            onChange={e => setNewRole(e.target.value)} />
           <button onClick={addEmployee}>Save</button>
         </div>
       )}
 
-      <br /><br />
-
-      {/* SELECT EMPLOYEE ------------------------------------------------ */}
       <h3>Select Employee</h3>
-      <select onChange={(e) => setSelected(e.target.value)}>
+      <select onChange={e => setSelected(e.target.value)}>
         <option>-- choose --</option>
-
         {employees.map(e => (
           <option key={e.id} value={e.id}>{e.name}</option>
         ))}
       </select>
 
-      {/* CAMERA ------------------------------------------------ */}
+      <br /><br />
+
       <button onClick={startCamera}>Start Camera</button>
-      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>Stop Camera</button>
+      <button onClick={stopCamera} style={{ background: "red", color: "white" }}>
+        Stop Camera
+      </button>
 
       <br /><br />
-      <video ref={videoRef} width="300" autoPlay playsInline></video>
+      <video ref={videoRef} width="300" autoPlay playsInline />
 
       <br /><br />
 
-      {/* CLOCK BUTTONS ------------------------------------------------ */}
       {selected && (
         <>
           <button onClick={() => sendTimestamp("in")}>Clock In</button>
@@ -193,39 +164,27 @@ function App() {
         </>
       )}
 
-      {/* SHIFT HISTORY ------------------------------------------------ */}
       {showHistory && (
-        <div style={{ marginTop: "20px" }}>
+        <div>
           <h2>Shift History</h2>
-
           {history.map((h, i) => (
-            <div key={i}>
-              {h.action} — {h.time}
-            </div>
+            <div key={i}>{h.action} — {h.time}</div>
           ))}
 
-          <br />
-
-          {/* PAY CALCULATOR -------------------------------------- */}
           <h3>Pay Calculator</h3>
-          Hourly Rate (€):  
-          <input
-            type="number"
+          € / hour:
+          <input type="number"
             value={hourlyRate}
-            onChange={(e) => setHourlyRate(parseFloat(e.target.value))}
-          />
-
-          <button onClick={calculatePay}>Calculate Pay</button>
+            onChange={e => setHourlyRate(+e.target.value)} />
 
           {calculatedPay && (
-            <div>
-              <p>Total Hours: {calculatedPay.hours}</p>
-              <p>Total Pay: €{calculatedPay.pay}</p>
-            </div>
+            <p>
+              Hours: {calculatedPay.hours}<br />
+              Pay: €{calculatedPay.pay}
+            </p>
           )}
         </div>
       )}
-
     </div>
   );
 }
